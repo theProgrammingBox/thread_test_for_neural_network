@@ -106,23 +106,6 @@ int main() {
 		cout << outputs[i] << " ";
 	}
 	cout << endl;*/
-	
-
-
-	/*start = std::chrono::high_resolution_clock::now();
-	for (int itr = 0; itr < 10; itr++) {
-		for (uint64_t i = 0; i < numNodes; i++) {
-			for (uint64_t j = 0; j < numNodes; j++) {
-				weights[i * numNodes + j] = i == j;
-			}
-		}
-		for (uint64_t i = 0; i < numNodes; i++) {
-			biases[i] = 0.0f;
-		}
-	}
-	end = std::chrono::high_resolution_clock::now();
-	elapsed = end - start;
-	cout << "Elapsed time: " << elapsed.count() / 10 << " s" << endl;*/
 
 	delete[] weights;
 	delete[] biases;
