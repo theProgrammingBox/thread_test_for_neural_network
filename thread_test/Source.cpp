@@ -16,7 +16,7 @@ void initWeightsAndBiases(float* weights, float* biases, uint64_t numNodes, uint
 	}
 }
 
-void multiplyWeightsAndBiases(float* inputs, float* weights, float* biases, float* outputs, uint64_t numNodes, uint64_t row, uint16_t numRows) {
+void multiplyWeightsAndBiases(float* weights, float* biases, float* inputs, float* outputs, float* perseptions, float* actions, uint64_t numNodes, uint64_t row, uint16_t numRows) {
 	for (uint64_t i = 0; i < numRows; i++) {
 		outputs[row + i] = biases[row + i];
 		for (uint64_t j = 0; j < numNodes; j++) {
@@ -100,6 +100,8 @@ public:
 			this->numThreads = other.numThreads;
 			this->numNodesPerThread = other.numNodesPerThread;
 			this->numRemainingNodes = other.numRemainingNodes;
+			this->numPerseptions = other.numPerseptions;
+			this->numActions = other.numActions;
 			delete[] this->weights;
 			delete[] this->biases;
 			delete[] this->inputs;
@@ -109,11 +111,15 @@ public:
 			this->biases = new float[numNodes];
 			this->inputs = new float[numNodes];
 			this->outputs = new float[numNodes];
+			this->perceptions = new float[numPerseptions];
+			this->actions = new float[numActions];
 			this->threads = new thread[numThreads];
 			memcpy(this->weights, other.weights, numWeights * sizeof(float));
 			memcpy(this->biases, other.biases, numNodes * sizeof(float));
 			memcpy(this->inputs, other.inputs, numNodes * sizeof(float));
 			memcpy(this->outputs, other.outputs, numNodes * sizeof(float));
+			memcpy(this->perceptions, other.perceptions, numPerseptions * sizeof(float));
+			memcpy(this->actions, other.actions, numActions * sizeof(float));
 		}
 		return *this;
 	}
@@ -124,16 +130,21 @@ public:
 		this->numThreads = other.numThreads;
 		this->numNodesPerThread = other.numNodesPerThread;
 		this->numRemainingNodes = other.numRemainingNodes;
-		// code here
+		this->numPerseptions = other.numPerseptions;
+		this->numActions = other.numActions;
 		this->weights = other.weights;
 		this->biases = other.biases;
 		this->inputs = other.inputs;
 		this->outputs = other.outputs;
+		this->perceptions = other.perceptions;
+		this->actions = other.actions;
 		this->threads = other.threads;
 		other.weights = nullptr;
 		other.biases = nullptr;
 		other.inputs = nullptr;
 		other.outputs = nullptr;
+		other.perceptions = nullptr;
+		other.actions = nullptr;
 		other.threads = nullptr;
 	}
 
@@ -144,20 +155,28 @@ public:
 			this->numThreads = other.numThreads;
 			this->numNodesPerThread = other.numNodesPerThread;
 			this->numRemainingNodes = other.numRemainingNodes;
+			this->numPerseptions = other.numPerseptions;
+			this->numActions = other.numActions;
 			delete[] this->weights;
 			delete[] this->biases;
 			delete[] this->inputs;
 			delete[] this->outputs;
+			delete[] this->perceptions;
+			delete[] this->actions;
 			delete[] this->threads;
 			this->weights = other.weights;
 			this->biases = other.biases;
 			this->inputs = other.inputs;
 			this->outputs = other.outputs;
+			this->perceptions = other.perceptions;
+			this->actions = other.actions;
 			this->threads = other.threads;
 			other.weights = nullptr;
 			other.biases = nullptr;
 			other.inputs = nullptr;
 			other.outputs = nullptr;
+			other.perceptions = nullptr;
+			other.actions = nullptr;
 			other.threads = nullptr;
 		}
 		return *this;
@@ -187,11 +206,11 @@ public:
 		for (int itr = 0; itr < 10; itr++) {	// must be even for pointers to be back, or make param for itr and use if or smth
 			uint64_t row = 0;
 			for (uint64_t i = 0; i < numRemainingNodes; i++) {
-				threads[i] = thread(multiplyWeightsAndBiases, inputs, weights, biases, outputs, numNodes, row, numNodesPerThread + 1);
+				threads[i] = thread(multiplyWeightsAndBiases, weights, biases, inputs, outputs, perceptions, actions, numNodes, row, numNodesPerThread + 1);
 				row += numNodesPerThread + 1;
 			}
 			for (uint64_t i = numRemainingNodes; i < numThreads; i++) {
-				threads[i] = thread(multiplyWeightsAndBiases, inputs, weights, biases, outputs, numNodes, row, numNodesPerThread);
+				threads[i] = thread(multiplyWeightsAndBiases, weights, biases, inputs, outputs, perceptions, actions, numNodes, row, numNodesPerThread);
 				row += numNodesPerThread;
 			}
 			for (int i = 0; i < numThreads; i++) {
@@ -226,7 +245,7 @@ public:
 		cout << endl;
 	}
 
-	void LinearInput() {	// for testing
+	void LinearInput() {	// for testing until initialInput is added
 		for (int i = 0; i < numNodes; i++) {
 			inputs[i] = i;
 		}
