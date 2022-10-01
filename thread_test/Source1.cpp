@@ -10,14 +10,11 @@ using std::swap;
 void initParams(float* initialInputs, float* weights, float* biases, uint64_t numNodes, uint64_t numInputs, uint64_t currentNode, uint16_t nodes) {
 	Random r;
 	for (uint64_t i = currentNode; i < currentNode + nodes; i++) {
-		initialInputs[i * (i < numNodes)] = r.normalRand() * 0.1f;
-		for (uint64_t j = 0; j < numNodes; j++) {
-			weights[i * numInputs + j] = (i == j) + r.normalRand() * 0.1f;
+		initialInputs[i * (i < numNodes)] = r.normalRand() * 0.01f;
+		for (uint64_t j = 0; j < numInputs; j++) {
+			weights[i * numInputs + j] = ((i != j) * 0.01 + (i == j)) * r.normalRand();
 		}
-		for (uint64_t j = numNodes; j < numInputs; j++) {
-			weights[i * numInputs + j] = r.normalRand() * 0.1f;
-		}
-		biases[i] = r.normalRand() * 0.1f;
+		biases[i] = r.normalRand() * 0.01f;
 	}
 }
 
@@ -269,9 +266,9 @@ public:
 };
 
 int main() {
-	Network net(10000, 2, 1, 10);
+	Network net(10, 2, 1, 10);
 	net.Initialize();
-	//net.PrintParams();
+	net.PrintParams();
 	//net.FeedForward();
 	//net.PrintOutputs();
 
