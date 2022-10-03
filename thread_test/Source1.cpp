@@ -12,21 +12,21 @@ void initParams(float* initialInputs, float* weights, float* biases, uint64_t nu
 	for (uint64_t i = currentNode; i < currentNode + nodes; i++) {
 		initialInputs[i * (i < numNodes)] = r.normalRand() * 0.01f;
 		for (uint64_t j = 0; j < numInputs; j++) {
-			weights[i * numInputs + j] = ((i != j) * 0.01 + (i == j)) * r.normalRand();
+			weights[i * numInputs + j] =  ((i == j) && (j < numNodes)) + 0.01f * r.normalRand();
 		}
 		biases[i] = r.normalRand() * 0.01f;
 	}
 }
 
-//void multiplyWeightsAndBiases(float* weights, float* biases, float* inputs, float* outputs, float* perseptions, float* actions, uint64_t numNodes, uint64_t currentOutput, uint16_t numOutputs) {
-//	for (uint64_t i = 0; i < numOutputs; i++) {
-//		outputs[currentOutput + i] = biases[currentOutput + i];
-//		for (uint64_t j = 0; j < numNodes; j++) {
-//			outputs[currentOutput + i] += weights[(currentOutput + i) * numNodes + j] * inputs[j];
-//		}
-//		outputs[currentOutput + i] *= (outputs[currentOutput + i] < 0.0f) * 1.1f - 0.1f;
-//	}
-//}
+void multiplyWeightsAndBiases(float* weights, float* biases, float* inputs, float* outputs, uint64_t numInputs, uint64_t currentNode, uint16_t nodes) {
+	for (uint64_t i = currentNode; i < currentNode + nodes; i++) {
+		outputs[i] = biases[i];
+		for (uint64_t j = 0; j < numInputs; j++) {
+			outputs[i] += weights[i * numInputs + j] * inputs[j];
+		}
+		outputs[i] = (outputs[i] > 1) - (outputs[i] < -1) + !(outputs[i] > 1 || outputs[i] < -1) * outputs[i];
+	}
+}
 
 class Network {						// only input and output layer, think of it like a brain's state of mind changing over time
 public:
@@ -200,32 +200,36 @@ public:
 		for (int i = 0; i < numThreads; i++) {
 			threads[i].join();
 		}
+		memcpy(inputs, initialInputs, numNodes * sizeof(float));
 		auto end = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<double> elapsed = end - start;
 		cout << "Elapsed time: " << elapsed.count() / 10 << " s" << endl;
 	}
 
-	//void FeedForward() {
-	//	auto start = std::chrono::high_resolution_clock::now();
-	//	for (int itr = 0; itr < 10; itr++) {	// must be even for pointers to be back, or make param for itr and use if or smth
-	//		uint64_t currentOutput = 0;
-	//		for (uint64_t i = 0; i < numRemainingNodes; i++) {
-	//			threads[i] = thread(multiplyWeightsAndBiases, weights, biases, inputs, outputs, perceptions, actions, numNodes, currentOutput, numNodesPerThread + 1);
-	//			currentOutput += numNodesPerThread + 1;
-	//		}
-	//		for (uint64_t i = numRemainingNodes; i < numThreads; i++) {
-	//			threads[i] = thread(multiplyWeightsAndBiases, weights, biases, inputs, outputs, perceptions, actions, numNodes, currentOutput, numNodesPerThread);
-	//			currentOutput += numNodesPerThread;
-	//		}
-	//		for (int i = 0; i < numThreads; i++) {
-	//			threads[i].join();
-	//		}
-	//		swap(inputs, outputs);
-	//	}
-	//	auto end = std::chrono::high_resolution_clock::now();
-	//	std::chrono::duration<double> elapsed = end - start;
-	//	cout << "Elapsed time: " << elapsed.count() / 10 << " s" << endl;
-	//}
+	void FeedForward(float* input, float* output) {
+		auto start = std::chrono::high_resolution_clock::now();
+		memcpy(inputs + numNodes, input, numPerseptions * sizeof(float));
+		for (int itr = 0; itr < 10; itr++) {
+			PrintOutputs();
+			uint64_t currentOutput = 0;
+			for (uint64_t i = 0; i < numRemainingNodes; i++) {
+				threads[i] = thread(multiplyWeightsAndBiases, weights, biases, inputs, outputs, numInputs, currentOutput, numNodesPerThread + 1);
+				currentOutput += numNodesPerThread + 1;
+			}
+			for (uint64_t i = numRemainingNodes; i < numThreads; i++) {
+				threads[i] = thread(multiplyWeightsAndBiases, weights, biases, inputs, outputs, numInputs, currentOutput, numNodesPerThread);
+				currentOutput += numNodesPerThread;
+			}
+			for (int i = 0; i < numThreads; i++) {
+				threads[i].join();
+			}
+			memcpy(inputs, outputs, numNodes * sizeof(float));
+		}
+		memcpy(output, outputs + numNodes, numActions * sizeof(float));
+		auto end = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double> elapsed = end - start;
+		cout << "Elapsed time: " << elapsed.count() / 10 << " s" << endl;
+	}
 
 	void PrintParams() {
 		cout << "Weights:\n";
@@ -241,36 +245,38 @@ public:
 		for (uint64_t i = 0; i < numOutputs; i++) {
 			cout << biases[i] << " ";
 		}
-		cout << endl;
+		cout << endl << endl;
 
 		cout << "Initial Inputs:\n";
 		for (uint64_t i = 0; i < numNodes; i++) {
 			cout << initialInputs[i] << " ";
 		}
-		cout << endl;
+		cout << endl << endl;
 	}
 
 	void PrintOutputs() {
-		cout << "Input:\n";
+		/*cout << "Input:\n";
 		for (uint64_t i = 0; i < numInputs; i++) {
 			cout << inputs[i] << " ";
 		}
-		cout << endl;
+		cout << endl << endl;*/
 
 		cout << "Outputs:\n";
 		for (uint64_t i = 0; i < numOutputs; i++) {
 			cout << outputs[i] << " ";
 		}
-		cout << endl;
+		cout << endl << endl;
 	}
 };
 
 int main() {
+	float* input = new float[2]{ 0, 1 };
+	float* output = new float[1]{ 0 };
 	Network net(10, 2, 1, 10);
 	net.Initialize();
 	net.PrintParams();
-	//net.FeedForward();
-	//net.PrintOutputs();
+	net.FeedForward(input, output);
+	net.PrintOutputs();
 
 	return 0;
 }
